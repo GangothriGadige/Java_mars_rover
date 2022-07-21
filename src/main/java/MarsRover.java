@@ -14,67 +14,77 @@ public class MarsRover {
             int positionLineIndex = i * 2 + 1;
             int commandLineIndex = positionLineIndex + 1;
 
-            int xWidth, yWidth;
+            Coordinate coordinate = getCoordinate(lines[positionLineIndex]);
 
-            try {
-                String[] split = lines[positionLineIndex].split(" ");
+            String direction = getDirection(lines[positionLineIndex]);
+            Direction directionValue = Direction.valueOf(direction);
+            Position roverPosition = new Position(coordinate, directionValue);
 
-                xWidth = Integer.parseInt(split[0]);
-                yWidth = Integer.parseInt(split[1]);
-            } catch (RuntimeException e) {
-                throw new IllegalArgumentException("Could not parse position from: " + lines[positionLineIndex]);
-            }
+            String[] commandArray = getCommands(lines, commandLineIndex);
 
-            int[] position = new int[]{xWidth, yWidth};
-
-            String direction;
-
-            try {
-                direction = lines[positionLineIndex].split(" ")[2];
-                if (!Arrays.asList("N", "E", "S", "W").contains(direction)) {
-                    throw new IllegalArgumentException();
-                }
-            } catch (RuntimeException e) {
-                throw new IllegalArgumentException("Could not parse direction from: " + lines[positionLineIndex]);
-            }
-
-            String[] commandArray = lines[commandLineIndex].split("(?!^)");
-
-            List<String> validCommands = Arrays.asList("L", "R", "M");
-            for (String command : commandArray) {
-                if (!validCommands.contains(command)) {
-                    throw new IllegalArgumentException("Invalid command sequence: " + lines[commandLineIndex]);
-                }
-            }
-
-            for (String command : commandArray) {
-                if (command.equals("M")) {
-                    int[] newPosition = position;
-
-                    if (direction.equals("N")) {
-                        newPosition[1] += +1;
-                    } else if (direction.equals("S")) {
-                        newPosition[1] += -1;
-                    } else if (direction.equals("E")) {
-                        newPosition[0] += +1;
-                    } else if (direction.equals("W")) {
-                        newPosition[0] += -1;
-                    }
-
-                    position = newPosition;
-                } else if (command.equals("R")) {
-                    List<String> all = Arrays.asList("N", "E", "S", "W");
-                    direction = all.get((all.indexOf(direction) + 1) % all.size());
-                } else if (command.equals("L")) {
-                    List<String> all = Arrays.asList("N", "E", "S", "W");
-                    direction = all.get((all.indexOf(direction) + 3) % all.size());
-                }
-            }
-
-            out += position[0] + " " + position[1] + " " + direction + "\n";
+            out += executeCommands(roverPosition, commandArray);
         }
 
         return out;
+    }
+
+    private String executeCommands(Position initialPosition, String[] commandArray) {
+        Position position = initialPosition;
+        List<String> all = Arrays.asList("N", "E", "S", "W");
+        for (String command : commandArray) {
+            if (command.equals("M")) {
+                Coordinate newCoordinate = position.getCoordinate().update(position.getDirection());
+                position = new Position(newCoordinate, position.getDirection());
+            } else if (command.equals("R")) {
+                String newDirection = all.get((all.indexOf(position.getDirection().toString()) + 1) % all.size());
+                position = new Position(position.getCoordinate(), Direction.valueOf(newDirection));
+            } else if (command.equals("L")) {
+                String newDirection = all.get((all.indexOf(position.getDirection().toString()) + 3) % all.size());
+                position = new Position(position.getCoordinate(), Direction.valueOf(newDirection));
+            }
+        }
+        return position.toString();
+    }
+
+    private String[] getCommands(String[] lines, int commandLineIndex) {
+        String[] commandArray = lines[commandLineIndex].split("(?!^)");
+
+        List<String> validCommands = Arrays.asList("L", "R", "M");
+        for (String command : commandArray) {
+            if (!validCommands.contains(command)) {
+                throw new IllegalArgumentException("Invalid command sequence: " + lines[commandLineIndex]);
+            }
+        }
+        return commandArray;
+    }
+
+    private String getDirection(String lines) {
+        String direction;
+
+        try {
+            direction = lines.split(" ")[2];
+            if (!Arrays.asList("N", "E", "S", "W").contains(direction)) {
+                throw new IllegalArgumentException();
+            }
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Could not parse direction from: " + lines);
+        }
+        return direction;
+    }
+
+    private Coordinate getCoordinate(String lines) {
+        int xWidth, yWidth;
+
+        try {
+            String[] split = lines.split(" ");
+
+            xWidth = Integer.parseInt(split[0]);
+            yWidth = Integer.parseInt(split[1]);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Could not parse position from: " + lines);
+        }
+
+        return new Coordinate(xWidth, yWidth);
     }
 
 }
